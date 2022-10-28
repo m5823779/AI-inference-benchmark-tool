@@ -79,8 +79,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--models', type=str, help='trace pytorch (.pt) model')
 
-    parser.add_argument('--model_name', type=str, help='pytorch (.pt) model [only weights]')
-    parser.add_argument('--import_module', type=str, help='pytorch (.pt) model [only weights]')
+    parser.add_argument('--module_name', type=str, help='import class (module) name')
+    parser.add_argument('--import_module', type=str, help='import module path')
     parser.add_argument('--weights', type=str, help='pytorch (.pt) model [only weights]')
 
     parser.add_argument('--size', type=int, default=640, help='inference size (pixels)')

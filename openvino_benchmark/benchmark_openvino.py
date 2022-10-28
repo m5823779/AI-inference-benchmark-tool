@@ -6,7 +6,7 @@ from openvino.inference_engine import ie_api as ie
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_model", required=True, help="Input model .onnx or .xml (OpenVINO IR model)")
-parser.add_argument('-w', '--input_wh', default=256, type=int, help='input node shape width & height')
+parser.add_argument('-d', '--device', default='CPU', help='select inference adapter (CPU, GPU, VPU etc.)')
 parser.add_argument('-n', '--num_infers', default=100, type=int, help='number of inferences')
 args = parser.parse_args()
 
@@ -30,7 +30,7 @@ else:
     print("Exit ...")
     exit()
 
-exec_net = core.load_network(net, device_name="CPU", num_requests=1)
+exec_net = core.load_network(net, device_name=args.device, num_requests=1)
 
 input_blob = next(iter(net.input_info))
 out_blob = next(iter(net.outputs))

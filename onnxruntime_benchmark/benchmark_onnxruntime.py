@@ -9,23 +9,17 @@ def onnx_set_input_shape(onnx_proto, input_wh):
     # replace input/output dynamic shape to static shape for DmlExecutionProvider for faster inference
     #   reference - https://onnxruntime.ai/docs/execution-providers/DirectML-ExecutionProvider.html#performance-tuning
     for d in onnx_proto.graph.input[0].type.tensor_type.shape.dim:
-        # print (f"dim: {d}")
-        if d.dim_param in ["input_h", "input_w"]:
-            assert (input_wh != None), "input shape is not specified in model or input parameter"
+        if d.dim_param:
             d.dim_value = input_wh
 
     for d in onnx_proto.graph.output[0].type.tensor_type.shape.dim:
-        # print (f"dim: {d}")
-        if d.dim_param in ["input_h", "input_w"]:
-            assert (input_wh != None), "input shape is not specified in model or input parameter"
+        if d.dim_param:
             d.dim_value = input_wh
-
     model_payload = onnx_proto.SerializeToString()
     return model_payload
 
 
 def benchmark(model_path, execution_provider, num_infers, input_wh, device_id):
-    
     execution_providers = [execution_provider]
 
     session_options = onnxruntime.SessionOptions()
@@ -76,7 +70,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_model", required=False, help="input model")
     parser.add_argument('-w', '--input_wh', default=256, type=int, help='input node shape width & height')
-    parser.add_argument('-g', '--device', default=0, type=int, help='Choose hardware device')
+    parser.add_argument('-d', '--device', default=0, type=int, help='Choose hardware device')
     parser.add_argument('-n', '--num_infers', default=30, type=int,help='number of inferences')
     parser.add_argument('-p', '--exec_list', required=False, action='store_true', help='List execution providers.')
     parser.add_argument('-e', '--exec_provider', default='CPUExecutionProvider',
@@ -87,7 +81,7 @@ def get_args():
 
 def main():
     args = get_args()
-    if (args.exec_list == True):
+    if (args.exec_list):
         # print all possible providers supported by this version of onnxruntime
         all_eps = onnxruntime.get_all_providers()
         print(f"All execution providers:")
@@ -99,9 +93,9 @@ def main():
         print("\nAvailable execution providers:")
         for ep in avail_eps:
             print(' -', ep)
-
-    print('benchmarking model...')
-    benchmark(args.input_model, args.exec_provider, args.num_infers, args.input_wh, args.device)
+    else:
+        print('benchmarking model...')
+        benchmark(args.input_model, args.exec_provider, args.num_infers, args.input_wh, args.device)
 
 
 if __name__ == '__main__':

@@ -16,12 +16,13 @@
 # Mono auto generated files
 mono_crash.*
 
-
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+[Dd]ebug-Dimenco/
+[Rr]elease-Dimenco/
 x64/
 x86/
 [Aa][Rr][Mm]/
@@ -188,7 +189,7 @@ PublishScripts/
 # NuGet Symbol Packages
 *.snupkg
 # The packages folder can be ignored because of Package Restore
-**/[Pp]ackages/*
+!**/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
@@ -350,11 +351,8 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-/External/sbs_generate/Debug/*.dll
-/External/sbs_generate/Release/*.dll
-
-
 # Exclude all floders and files under /External
-#!/External/**
+!/External/**
 
-*onnx
+# Header files of Shader
+Shaders/*.h

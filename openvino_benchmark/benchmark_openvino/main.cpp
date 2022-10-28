@@ -7,7 +7,13 @@
 #include <chrono>
 #include <Windows.h>
 #include <filesystem>
-#include <inference_engine.hpp>
+
+#undef max
+#undef min
+#include <ie/inference_engine.hpp>
+
+#define max(a, b) (a > b ? a : b)
+#define min(a, b) (a < b ? a : b)
 
 using namespace InferenceEngine;
 
@@ -20,13 +26,14 @@ bool CheckExist(const std::string src);
 std::string model_path;
 std::string bin_path;
 
-int input_width = 256;
-int input_height = 256;
-int inference_times = 100;
+int input_width;
+int input_height;
+int inference_times;
+int model_id;
+float sleep;
 
-int user_input;
-float sleep = 16.6667;
-std::string inference_adapter;
+std::string infer_device;
+std::string user_input_str;
 
 // entry points
 int main(int argc, char* argv[]) {
@@ -79,7 +86,7 @@ int main(int argc, char* argv[]) {
         outputs.begin()->second->setPrecision(Precision::FP32);
 
         // step 5. loading a model to the device
-        ExecutableNetwork executable_network = ie.LoadNetwork(network, inference_adapter);
+        ExecutableNetwork executable_network = ie.LoadNetwork(network, infer_device);
 
         // step 6. create an infer request
         InferRequest infer_request = executable_network.CreateInferRequest();
@@ -89,11 +96,10 @@ int main(int argc, char* argv[]) {
         Blob::Ptr output_blob = infer_request.GetBlob(output_name);
 
         // step 7. prepare dummy input
+        float* raw_data = new float[1 * 3 * input_height * input_width];
         //InferenceEngine::TensorDesc tDesc(InferenceEngine::Precision::FP32, { 1, 3, 256, 256 }, InferenceEngine::Layout::NCHW);
-        //float *raw_data = new float[1 * 3 * input_height * input_width];
         //Blob::Ptr imgBlob = InferenceEngine::make_shared_blob<float>(tDesc, raw_data);
         //infer_request.SetBlob(input_name, imgBlob);  // infer_request accepts input blob of any size
-        float* raw_data = new float[1 * 3 * input_height * input_width];
 
         // step 7. do inference
         // running the request synchronously
@@ -132,72 +138,60 @@ int main(int argc, char* argv[]) {
 }
 
 void UserInput() {
-    // Select adapter
-    printf("\nUse CPU (0) or GPU (1) to inference: ");
-    std::cin >> user_input;
-    if (user_input) {
-        inference_adapter = "GPU";
-    }
-    else {
-        inference_adapter = "CPU";
-    }
-    printf("\n");
-
     // set model
     std::vector<std::filesystem::path> model_list;
-    for (const auto& file : std::filesystem::recursive_directory_iterator("./")) {
-        auto s = file.path();
-        if (s.extension().string() == ".xml" && s.filename().string() != "plugins.xml") model_list.push_back(file.path());
+    for (const auto& file : std::filesystem::recursive_directory_iterator("../")) {
+        if (file.path().extension().string() == ".xml" && file.path().filename().string() != "plugins.xml") model_list.push_back(file);
     }
 
-    if (model_list.size() == 0) {
-        std::cout << "Can not find any IR model (.xml) please put it in root folder" << std::endl;
-        Sleep(10000);
-        exit;
+    if (!model_list.size()) {
+        printf("\nCan not find any IR model (.xml) please put it in root folder\n");
+        return;
     }
-    else if (model_list.size() == 1) {
+    else if (model_list.size() == 1) {        
+        printf("\nFind model: %s", model_list[0].string().c_str());
         model_path = model_list[0].string();
     }
     else {
+        std::cout << "\nFind model: ";
         for (int i = 0; i < model_list.size(); ++i) {
-            std::cout << "(" << i << "): " << model_list[i] << std::endl;
+            printf("\n(%d): %s", i, model_list[i].string().c_str());
         }
         std::cout << "Choose model: ";
-        std::cin >> user_input;
-        model_path = model_list[min(user_input, model_list.size())].string();
-        printf("\n");
+        std::getline(std::cin, user_input_str);
+        model_id = (user_input_str == "") ? 0 : stoi(user_input_str);
+        model_path = model_list[min(model_id, model_list.size())].string();
     }
 
     bin_path = model_path.substr(0, model_path.find_last_of('.')) + ".bin";
 
     // set model input shape
-    std::cout << "Input model width  (default 256): ";
-    std::cin >> input_width;
+    std::cout << "\nInput model width  [default 256]: ";
+    std::getline(std::cin, user_input_str);
+    input_width = (user_input_str == "") ? 256 : stoi(user_input_str);
 
-    std::cout << "Input model height (default 256): ";
-    std::cin >> input_height;
+    std::cout << "Input model height [default 256]: ";
+    std::getline(std::cin, user_input_str);
+    input_height = (user_input_str == "") ? 256 : stoi(user_input_str);
 
-    if (input_width % 32 != 0) {  // Input shape for model must be a multiple of 32
-        input_width = input_width - (input_width % 32);
-    }
-
-    if (input_height % 32 != 0) {  // Input shape for model must be a multiple of 32
-        input_height = input_height - (input_height % 32);
-    }
-    printf("\n");
+    // Select adapter
+    printf("\nUse CPU, GPU or VPUX to inference [default CPU]: ");
+    std::getline(std::cin, user_input_str);
+    infer_device = (user_input_str == "") ? "CPU" : user_input_str;
 
     printf("\nInference times (default 100): ");
-    std::cin >> inference_times;
-    printf("\n");
+    std::getline(std::cin, user_input_str);
+    inference_times = (user_input_str == "") ? 100 : stoi(user_input_str);
 
-    printf("\nSleep (ms): ");
-    std::cin >> sleep;
+    printf("\nSleep (ms) (default 0): ");
+    std::getline(std::cin, user_input_str);
+    sleep = (user_input_str == "") ? 0 : stoi(user_input_str);
     printf("\n");
 }
 
 void PrintConfig() {
     std::cout << "\nConfiguration: " << std::endl;
-    std::cout << "Inference Adapter: " << inference_adapter << std::endl;
+    std::cout << "Inference Adapter: " << infer_device << std::endl;
     std::cout << "Input Model (.xml): " << model_path << std::endl;
     std::cout << "Input Model (.bin): " << bin_path << std::endl;
     std::cout << "Model Input Shape: ( 1 x 3 x " << input_height << " x "<< input_width << ")" << std::endl;
