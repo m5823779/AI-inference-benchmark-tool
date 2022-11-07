@@ -1,4 +1,4 @@
-# Deep Learning Inference Performance Benchmark Tool (ONNX runtime)
+# Deep Learning Inference Performance Benchmark Tool (OpenVINO)
 Benchmark Tool (Python / C++) to estimate deep learning inference performance using [openvino](https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/overview.html)
 
 ## Setup (Python)
